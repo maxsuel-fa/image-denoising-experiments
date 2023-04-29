@@ -3,8 +3,9 @@ from typing import List
 import torch
 from torch import Tensor
 import torch.nn as nn
+from torchmetrics import StructuralSimilarityIndexMeasure as SSIM
 
-from .buildingblocks import Vgg19FeatExtrator 
+from buildingblocks import Vgg19FeatExtrator 
 
 class AdvLoss(nn.Module):
     """ Adversarial Loss function.
@@ -123,3 +124,16 @@ class PerceptualLoss(nn.Module):
         for i in range(len(vgg_x)):
             loss += self.weights[i] * self.criterion(vgg_x[i], vgg_y[i])
         return loss
+
+class SDIMLoss(nn.Module):
+    """ TODO """
+    def __init__(self, 
+                data_range: float = 1.0, 
+                reduction: str = None) -> None:
+        """ TODO """
+        super(SDIMLoss, self).__init__()
+        self.criterion = SSIM(data_range=data_range, reduction=reduction)
+
+    def forward(self, x: Tensor, y: Tensor) -> Tensor:
+        """ TODO """
+        return 1 - self.criterion(x, y)
