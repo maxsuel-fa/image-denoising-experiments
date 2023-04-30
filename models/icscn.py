@@ -16,7 +16,7 @@ from torch.utils.data.distributed import DistributedSampler
 from typing import Any, Dict, Union
 from collections import OrderedDict
 
-from .losses import AdvLoss, DiscLoss, FMLoss, PerceptualLoss
+from .losses import AdvLoss, DiscLoss, FMLoss, PerceptualLoss, SDIMLoss
 from .networks import Discriminator, Generator
 from data.dataset import Dataset
 from utils.options import parse_train_options
@@ -111,6 +111,7 @@ class ICSCN:
         adv_criterion = AdvLoss().to(device_id)
         fm_criterion = FMLoss().to(device_id)
         vgg_criterion = PerceptualLoss([1, 6, 11, 20, 29]).to(device_id)
+        sdim_criterion = SDIMLoss()
 
         # discriminator criterion
         disc_criterion = DiscLoss().to(device_id)
@@ -168,10 +169,12 @@ class ICSCN:
                 adv_loss = adv_criterion(derained_pred[-1])
                 fm_loss = fm_criterion(clear_pred[:-2], derained_pred[:-2])
                 vgg_loss = vgg_criterion(derained_image, clear_image)
+                sdim_loss = sdim_criterion(derained_image, clear_image)
 
                 gen_loss = train_options.lambda_adv * adv_loss \
-                    + train_options.lambda_fm * fm_loss \
-                    + train_options.lambda_vgg * vgg_loss
+                         + train_options.lambda_fm * fm_loss \
+                         + train_options.lambda_vgg * vgg_loss \
+                         + train_options.lambda_sdim * sdim_loss
 
                 self.gen_optim.zero_grad()
                 gen_loss.backward()
@@ -231,10 +234,9 @@ class ICSCN:
                                        time_left)
             print(logg_str)
 
-            # save the model each 50 epoch
-            if trained_epochs and trained_epochs % 10 == 0:
-                pass
-                #self.save(train_options.checkpoint_dir, epoch + 1)
+            # save the model each 5 epoch
+            if trained_epochs and trained_epochs % 5 == 0:
+                self.save(train_options.checkpoint_dir, epoch + 1)
 
         self.save(train_options.checkpoint_dir)
 
