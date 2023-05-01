@@ -89,7 +89,7 @@ class AttentiveGenerator(nn.Module):
     def __init__(self, input_nc: int, output_nc: int,
                  n_filters: int = 32) -> None:
         """ TODO """
-        super(Generator, self).__init__()
+        super(AttentiveGenerator, self).__init__()
         self.input_block = nn.Sequential(nn.ReflectionPad2d(3),
                                          ConvBlock(input_nc, n_filters,
                                                    norm_type='instance',
