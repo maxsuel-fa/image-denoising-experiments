@@ -5,7 +5,7 @@ from torch import Tensor
 import torch.nn as nn
 from torchmetrics import StructuralSimilarityIndexMeasure as SSIM
 
-from buildingblocks import Vgg19FeatExtrator 
+from .buildingblocks import Vgg19FeatExtrator 
 
 class AdvLoss(nn.Module):
     """ Adversarial Loss function.

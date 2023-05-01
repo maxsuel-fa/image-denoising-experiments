@@ -1,5 +1,5 @@
 from numpy import ceil
-from typing import List, Union
+from typing import List, Union, Tuple
 
 import torch
 from torch import Tensor

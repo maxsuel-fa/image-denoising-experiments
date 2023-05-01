@@ -183,27 +183,23 @@ class ChannelAttention(nn.Module):
                  kernel_size: Union[int, Tuple[int, int]]) -> None:
         """ TODO """
         super(ChannelAttention, self).__init__()
-        self.conv = nn.Sequential(nn.Conv2d(n_channels,
-                                            n_channels // reduction,
-                                            kernel_size,
-                                            padding=0, bias=True),
-                                  nn.ReLU(inplace=True),
-                                  nn.Conv2d(n_channels // reduction,
-                                            n_channels,
-                                            kernel_size,
-                                            padding=0,
-                                            bias=True),
-                                  nn.Sigmoid())
+        self.model = nn.Sequential(nn.AdaptiveAvgPool2d(1),
+                                   nn.Conv2d(n_channels,
+                                             n_channels // reduction,
+                                             kernel_size,
+                                             padding=0, bias=True),
+                                   nn.ReLU(inplace=True),
+                                   nn.Conv2d(n_channels // reduction,
+                                             n_channels,
+                                             kernel_size,
+                                             padding=0,
+                                             bias=True),
+                                   nn.Sigmoid())
 
     def forward(self, x: Tensor) -> Tensor:
         """ TODO """
-        y = self._global_average_pooling(x)
-        y = self.conv(y)
-        return x * y
+        return x * self.model(x)
 
-    def _global_average_pooling(self, x: Tensor) -> Tensor:
-        """ TODO """
-        return torch.mean(x.view(x.size(0), x.size(1), -1), dim=2)
 
 class RCAB(nn.Module):
     """ TODO """
@@ -227,7 +223,7 @@ class RCAG(nn.Module):
     """ TODO """
     def __init__(self, n_blocks: int,
                  n_features: int,
-                 reduction: int, 
+                 reduction: int,
                  kernel_size: Union[int, Tuple[int, int]]) -> None:
         """ TODO """
         super(RCAG, self).__init__()
