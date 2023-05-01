@@ -167,18 +167,18 @@ class RCAN(nn.Module):
                  kernel_size: Union[int, Tuple[int, int]] = 3) -> None:
         """ TODO """
         super(RCAN, self).__init__()
-        self.input_conv = ConvBlock(input_nc, 
-                                    n_features, 
-                                    conv_kernel_size=kernel_size)
+        self.input_conv = nn.Conv2d(input_nc,
+                                    n_features,
+                                    kernel_size)
 
         self.res_groups = nn.Sequential(*([RCAG(n_blocks, 
                                                 n_features, 
                                                 reduction, 
                                                 kernel_size)] * n_groups))
 
-        self.output_conv = ConvBlock(n_features, 
+        self.output_conv = nn.Conv2d(n_features, 
                                      output_nc, 
-                                     conv_kernel_size=kernel_size)
+                                     kernel_size)
 
     def forward(self, x: Tensor) -> Tensor:
         """ TODO """
