@@ -27,7 +27,7 @@ from visualization.visualization import plot_result
 from torchvision.transforms import ToPILImage, Resize
 from PIL import Image, ImageChops, ImageOps
 
-class ICSCN:
+class ATTPIX2PIX:
     """ TODO """
     def __init__(self,
                  image_nc: int = 3,
