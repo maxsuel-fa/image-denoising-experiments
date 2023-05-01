@@ -48,7 +48,7 @@ class ConvBlock(nn.Module):
             pool_kernel_size(int or tuple) -- the size of the kernel used in the pooling
                                               operation. Default: 3
             pool_stride(int or tuple, optional) -- the stride used in the pooling operation. Default: 3
-            pool_padding(int, tuple or str, optional) -- padding added to the input of the pooling operation. Default: 1 
+            pool_padding(int, tuple or str, optional) -- padding added to the input of the pooling operation. Default: 1
         """
         super(ConvBlock, self).__init__()
 
@@ -87,12 +87,12 @@ class ConvBlock(nn.Module):
             raise NotImplementedError('This type of activation is not implemented yet')
 
         if pooling_type == 'max':
-            conv_block += [nn.MaxPool2d(pool_kernel_size, 
-                                        stride=pool_stride, 
+            conv_block += [nn.MaxPool2d(pool_kernel_size,
+                                        stride=pool_stride,
                                         padding=pool_padding)]
         elif pooling_type != 'none':
             raise NotImplementedError('This type of pooling is not implemented yet')
-        
+
         self.conv_block = nn.Sequential(*conv_block)
 
     def forward(self, x: Tensor) -> Tensor:
@@ -116,10 +116,10 @@ class ResNetBlock(nn.Module):
             input_nc (int) -- number of input channels
         """
         super(ResNetBlock, self).__init__()
-        self.block = nn.Sequential(ConvBlock(input_nc, input_nc, 
+        self.block = nn.Sequential(ConvBlock(input_nc, input_nc,
                                              norm_type='instance',
                                              conv_stride=1),
-                                   ConvBlock(input_nc, input_nc, 
+                                   ConvBlock(input_nc, input_nc,
                                              norm_type='instance',
                                              activation_type='none',
                                              conv_stride=1))
@@ -138,7 +138,7 @@ class Vgg19FeatExtrator(nn.Module):
     """ Extracts intermediate features from a pre-trained
     Vgg19 network.
     """
-    def __init__(self, return_layers: Dict[str, str], 
+    def __init__(self, return_layers: Dict[str, str],
                  requires_grad: bool = False) -> None:
         """ Initiates a new feature extrator.
 
@@ -147,16 +147,16 @@ class Vgg19FeatExtrator(nn.Module):
 
         Parameters:
             return_layers (Dict[str, str]) -- dictionary where aech key is the name of a layer
-                                              one wants to extract features from and the respective 
-                                              value is the new name that will be given for the extracted 
+                                              one wants to extract features from and the respective
+                                              value is the new name that will be given for the extracted
                                               layer
-            requires_grad (bool) -- whether the weights of the vgg needs to be updated or not. 
+            requires_grad (bool) -- whether the weights of the vgg needs to be updated or not.
                                     Default: False.
         """
         super(Vgg19FeatExtrator, self).__init__()
         vgg_features = vgg19(weights='DEFAULT').features
         self.model = IntermediateLayerGetter(vgg_features, return_layers)
-        
+
         if not requires_grad:
             for param in self.parameters():
                 param.requires_grad = False
@@ -169,8 +169,74 @@ class Vgg19FeatExtrator(nn.Module):
 
         Parameters:
             x (Tensor) -- input tensor
-        Return (List[Tensor]) -- list of the features extracted, i.e list containing the 
+        Return (List[Tensor]) -- list of the features extracted, i.e list containing the
                                  output of each layer specified in the return_layers parameter
         """
         y = [y for y in self.model(x).values()]
         return y
+
+class ChannelAttention(nn.Module):
+    """ TODO """
+    def __init__(self,
+                 n_channels: int,
+                 reduction: int,
+                 kernel_size: Union[int, Tuple[int, int]]) -> None:
+        """ TODO """
+        super(ChannelAttention, self).__init__()
+        self.conv = nn.Sequential(nn.Conv2d(n_channels,
+                                            n_channels // reduction,
+                                            kernel_size,
+                                            padding=0, bias=True),
+                                  nn.ReLU(inplace=True),
+                                  nn.Conv2d(n_channels // reduction,
+                                            n_channels,
+                                            kernel_size,
+                                            padding=0,
+                                            bias=True),
+                                  nn.Sigmoid())
+
+    def forward(self, x: Tensor) -> Tensor:
+        """ TODO """
+        y = self._global_average_pooling(x)
+        y = self.conv(y)
+        return x * y
+
+    def _global_average_pooling(self, x: Tensor) -> Tensor:
+        """ TODO """
+        return torch.mean(x.view(x.size(0), x.size(1), -1), dim=2)
+
+class RCAB(nn.Module):
+    """ TODO """
+    def __init__(self,
+                 n_features: int,
+                 reduction: int,
+                 kernel_size: Union[int, Tuple[int, int]]) -> None:
+        """ TODO """
+        super(RCAB, self).__init__()
+        self.model = nn.Sequential(nn.Conv2d(n_features, n_features, kernel_size, bias=True),
+                                   nn.ReLU(inplace=True),
+                                   nn.Conv2d(n_features, n_features, kernel_size, bias=True),
+                                   ChannelAttention(n_features, reduction, kernel_size))
+
+    def forward(self, x: Tensor) -> Tensor:
+        """ TODO """
+        return x + self.model(x)
+
+
+class RCAG(nn.Module):
+    """ TODO """
+    def __init__(self, n_blocks: int,
+                 n_features: int,
+                 reduction: int, 
+                 kernel_size: Union[int, Tuple[int, int]]) -> None:
+        """ TODO """
+        super(RCAG, self).__init__()
+        model = [RCAB(n_features, reduction, kernel_size)] * n_blocks
+        model += [nn.Conv2d(n_features, n_features, kernel_size, bias=True)]
+        self.model = nn.Sequential(*model)
+
+    def forward(self, x: Tensor) -> Tensor:
+        """ TODO """
+        return x + self.model(x)
+
+
